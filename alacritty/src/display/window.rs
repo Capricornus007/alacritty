@@ -442,7 +442,13 @@ impl Window {
     pub fn set_ime_inhibitor(&mut self, inhibitor: ImeInhibitor, inhibit: bool) {
         if self.ime_inhibitor.contains(inhibitor) != inhibit {
             self.ime_inhibitor.set(inhibitor, inhibit);
-            self.window.set_ime_allowed(self.ime_inhibitor.is_empty());
+            // Upstream #8747 made this toggle on every focus change and on vi-mode, and on X11
+            // that off->on cycle wedges winit's XIM context: keystrokes stop reaching the pty
+            // (upstream #8907, still unfixed as of this baseline). X11 keeps IME always allowed;
+            // Wayland keeps the dynamic behaviour.
+            if !self.is_x11 {
+                self.window.set_ime_allowed(self.ime_inhibitor.is_empty());
+            }
         }
     }
 
